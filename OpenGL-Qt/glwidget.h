@@ -93,6 +93,7 @@ private:
 	void initFrontMaterail();
 	void initScene();
 	void initPlane();
+	void test();
 	QVector3D calcNormal(QVector3D v1, QVector3D v2, QVector3D v3);
 
 
@@ -112,7 +113,7 @@ private:
 	QOpenGLBuffer eboBuffer;
 	GLuint shadowMapID;
 	GLuint depthMapFBO;
-	//QMatrix4x4 mvp;
+	QMatrix4x4 mvp;
 	QMatrix4x4 view;
 	QMatrix4x4 model;
 	QMatrix4x4 project;

@@ -65,6 +65,18 @@ GLWidget::GLWidget(QWidget *parent)
 	zRot(0),
 	program(0)
 {
+	/*mvp.ortho(-0.5f, +0.5f, +0.5f, -0.5f, 4.0f, 50.0f);
+	mvp.translate(0.0f, 0.0f, -20.0f);
+	mvp.rotate(xRot / 16.0f, 1.0f, 0.0f, 0.0f);
+	mvp.rotate(yRot / 16.0f, 0.0f, 1.0f, 0.0f);
+	mvp.rotate(zRot / 16.0f, 0.0f, 0.0f, 1.0f);*/
+	mvp.ortho(-0.5f, +0.5f, +0.5f, -0.5f, 4.0f, 15.0f);
+	mvp.translate(0.0f, 0.0f, -10.0f);
+	mvp.rotate(xRot / 16.0f, 1.0f, 0.0f, 0.0f);
+	mvp.rotate(yRot / 16.0f, 0.0f, 1.0f, 0.0f);
+	mvp.rotate(zRot / 16.0f, 0.0f, 0.0f, 1.0f);
+	
+
 	memset(textures, 0, sizeof(textures));
 	//model matrix
 	model.rotate(xRot / 16.0f, 1.0f, 0.0f, 0.0f);
@@ -76,7 +88,7 @@ GLWidget::GLWidget(QWidget *parent)
 	view.lookAt(QVector3D(0, 0, 0), QVector3D(0, 0, -10), QVector3D(0, 1, 0));
 
 	//prject matrix
-	project.frustum(-0.5f, +0.5f, +0.5f, -0.5f, 4.0f, 200.0f);
+	project.frustum(-0.5f, +0.5f, +0.5f, -0.5f, 4.0f, 50.0f);
 
 	xMov = 0;
 	yMov = 0;
@@ -135,13 +147,15 @@ void GLWidget::initializeGL()
 void GLWidget::paintGL()
 {
 	float div = 64;
-	view.rotate(xRot / 64.0f, 1.0f, 0.0f, 0.0f);
-	view.rotate(yRot / 64.0f, 0.0f, 1.0f, 0.0f);
-	view.rotate(zRot / 64.0f, 0.0f, 0.0f, 1.0f);
+	view.rotate(xRot / div, 1.0f, 0.0f, 0.0f);
+	view.rotate(yRot / div, 0.0f, 1.0f, 0.0f);
+	view.rotate(zRot / div, 0.0f, 0.0f, 1.0f);
 	genShadowMap();
+	
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, depthMapFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMapID, 0);
 	initDepthMaterail();
+	//test();
 
 	
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
@@ -186,12 +200,10 @@ void GLWidget::mouseReleaseEvent(QMouseEvent * /* event */)
 void GLWidget::genShadowMap()
 {
 	glGenFramebuffers(1, &depthMapFBO);
-	int width = 200;
-	int height = 200;
+	int width = 1024;
+	int height = 768;
 	glGenTextures(1, &shadowMapID);
 	glBindTexture(GL_TEXTURE_2D, shadowMapID);
-	QOpenGLTexture text (QOpenGLTexture::Target::Target2D);
-	
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -229,7 +241,6 @@ void GLWidget::initDepthMaterail()
 	program->addShader(fshader);
 	program->bindAttributeLocation("vertex", PROGRAM_VERTEX_ATTRIBUTE);
 	program->bindAttributeLocation("texCoord", PROGRAM_TEXCOORD_ATTRIBUTE);
-	program->bindAttributeLocation("normal",PROGRAM_NORMAL_ATTRIBUTE);
 	program->link();
 
 	program->bind();
@@ -239,17 +250,14 @@ void GLWidget::initDepthMaterail()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-	program->setUniformValue("matrix", project*model*view);
+	program->setUniformValue("matrix", mvp);
 	program->enableAttributeArray(PROGRAM_VERTEX_ATTRIBUTE);
 	program->enableAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE);
-	program->enableAttributeArray(PROGRAM_NORMAL_ATTRIBUTE);
 	program->setAttributeBuffer(PROGRAM_VERTEX_ATTRIBUTE, GL_FLOAT, 0, 3, 8 * sizeof(GLfloat));
 	program->setAttributeBuffer(PROGRAM_TEXCOORD_ATTRIBUTE, GL_FLOAT, 3 * sizeof(GLfloat), 2, 8 * sizeof(GLfloat));
-	program->setAttributeBuffer(PROGRAM_NORMAL_ATTRIBUTE, GL_FLOAT, 5 * sizeof(GLfloat), 3, 8 * sizeof(GLfloat));
 
 	for (int i = 0; i < 6; ++i) {
 		glBindTexture(GL_TEXTURE_2D, shadowMapID);
-
 		glDrawArrays(GL_TRIANGLE_FAN, i * 4, 4);
 	}
 }
@@ -459,6 +467,12 @@ void GLWidget::makeObject()
 	vbo.create();
 	vbo.bind();
 	vbo.allocate(vertData.constData(), vertData.count() * sizeof(GLfloat));
+}
+
+void GLWidget::test()
+{
+
+	
 }
 
 

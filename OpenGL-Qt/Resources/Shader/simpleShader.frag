@@ -8,6 +8,6 @@ void main(void)
 	vec3 noraml=vec3(v_normal.x,v_normal.y,v_normal.z);
 	//noraml=normalize(noraml);
 	float result=dot(lightDirection,noraml);
-    gl_FragColor = texture2D(texture, texc.st)*result+vec4(amination,1.0);
+    gl_FragColor = texture2D(texture, texc.st);//*result+vec4(amination,1.0);
 
 }
