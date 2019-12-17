@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/OpenGLQt">
+        <file>Resources/images/side1.png</file>
+        <file>Resources/images/side2.png</file>
+        <file>Resources/images/side3.png</file>
+        <file>Resources/images/side4.png</file>
+        <file>Resources/images/side5.png</file>
+        <file>Resources/images/side6.png</file>
+        <file>Resources/Shader/simpleShader.frag</file>
+        <file>Resources/Shader/simpleShader.vert</file>
+        <file>Resources/Shader/shadowMap.frag</file>
+        <file>Resources/Shader/shadowMap.vert</file>
+        <file>Resources/Shader/planeShader.frag</file>
+        <file>Resources/Shader/planeShader.vert</file>
+    </qresource>
+</RCC>

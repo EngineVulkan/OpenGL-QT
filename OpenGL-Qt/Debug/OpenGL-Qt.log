@@ -1,0 +1,12 @@
+﻿  uic OpenGLQt.ui
+  moc OpenGLQt.h
+  moc window.h
+  glwidget.cpp
+  main.cpp
+  OpenGLQt.cpp
+  window.cpp
+  qrc_OpenGLQt.cpp
+  moc_glwidget.cpp
+  moc_OpenGLQt.cpp
+  moc_window.cpp
+  OpenGL-Qt.vcxproj -> D:\OpenGL-QT\Win32\Debug\OpenGL-Qt.exe
