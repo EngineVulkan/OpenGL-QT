@@ -93,6 +93,7 @@ private:
 	void initFrontMaterail();
 	void initScene();
 	void initPlane();
+	void initDepthPlane();
 	void test();
 	QVector3D calcNormal(QVector3D v1, QVector3D v2, QVector3D v3);
 
@@ -117,6 +118,9 @@ private:
 	QMatrix4x4 view;
 	QMatrix4x4 model;
 	QMatrix4x4 project;
+	QMatrix4x4 s_view;
+	QMatrix4x4 s_project;
+	QVector3D m_lightDir;
 };
 
 #endif

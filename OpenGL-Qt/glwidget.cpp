@@ -54,8 +54,9 @@
 #include <QMouseEvent>
 #include <Qt3DCore/qentity.h>
 
-//#define PROGRAM_VERTEX_ATTRIBUTE 0
-//#define PROGRAM_TEXCOORD_ATTRIBUTE 1
+#define PROGRAM_VERTEX_ATTRIBUTE 0
+#define PROGRAM_TEXCOORD_ATTRIBUTE 1
+#define PROGRAM_NORMAL_ATTRIBUTE 2
 
 GLWidget::GLWidget(QWidget *parent)
 	: QOpenGLWidget(parent),
@@ -65,16 +66,10 @@ GLWidget::GLWidget(QWidget *parent)
 	zRot(0),
 	program(0)
 {
-	/*mvp.ortho(-0.5f, +0.5f, +0.5f, -0.5f, 4.0f, 50.0f);
-	mvp.translate(0.0f, 0.0f, -20.0f);
-	mvp.rotate(xRot / 16.0f, 1.0f, 0.0f, 0.0f);
-	mvp.rotate(yRot / 16.0f, 0.0f, 1.0f, 0.0f);
-	mvp.rotate(zRot / 16.0f, 0.0f, 0.0f, 1.0f);*/
-	mvp.ortho(-0.5f, +0.5f, +0.5f, -0.5f, 4.0f, 15.0f);
-	mvp.translate(0.0f, 0.0f, -10.0f);
-	mvp.rotate(xRot / 16.0f, 1.0f, 0.0f, 0.0f);
-	mvp.rotate(yRot / 16.0f, 0.0f, 1.0f, 0.0f);
-	mvp.rotate(zRot / 16.0f, 0.0f, 0.0f, 1.0f);
+
+	s_project.ortho(-0.5f, +0.5f, +0.5f, -0.5f, 4.0f, 50.0f);
+	//s_view.lookAt(QVector3D(0,0,0),QVector3D(0,0,-10),QVector3D(0,1,0));
+	s_view.lookAt(QVector3D(10,10,0),QVector3D(0,0,0),QVector3D(-1,1,0));
 	
 
 	memset(textures, 0, sizeof(textures));
@@ -155,7 +150,7 @@ void GLWidget::paintGL()
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, depthMapFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMapID, 0);
 	initDepthMaterail();
-	//test();
+	initDepthPlane();
 
 	
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0);
@@ -195,71 +190,6 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 void GLWidget::mouseReleaseEvent(QMouseEvent * /* event */)
 {
 	emit clicked();
-}
-
-void GLWidget::genShadowMap()
-{
-	glGenFramebuffers(1, &depthMapFBO);
-	int width = 1024;
-	int height = 768;
-	glGenTextures(1, &shadowMapID);
-	glBindTexture(GL_TEXTURE_2D, shadowMapID);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-}
-
-void GLWidget::initDepthMaterail()
-{
-	makeObject();
-
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-
-#define PROGRAM_VERTEX_ATTRIBUTE 0
-#define PROGRAM_TEXCOORD_ATTRIBUTE 1
-#define PROGRAM_NORMAL_ATTRIBUTE 2
-
-	QOpenGLShader *vshader = new QOpenGLShader(QOpenGLShader::Vertex, this);
-	bool result = vshader->compileSourceFile(QString(":/OpenGLQt/Resources/Shader/shadowMap.vert"));
-	if (!result)
-	{
-		int i = 0;
-	}
-
-	QOpenGLShader *fshader = new QOpenGLShader(QOpenGLShader::Fragment, this);
-	bool fResult = fshader->compileSourceFile(QString(":/OpenGLQt/Resources/Shader/shadowMap.frag"));
-	if (!fResult)
-	{
-		int i = 0;
-	}
-
-	program = new QOpenGLShaderProgram;
-	program->addShader(vshader);
-	program->addShader(fshader);
-	program->bindAttributeLocation("vertex", PROGRAM_VERTEX_ATTRIBUTE);
-	program->bindAttributeLocation("texCoord", PROGRAM_TEXCOORD_ATTRIBUTE);
-	program->link();
-
-	program->bind();
-	program->setUniformValue("texture", 0);
-
-	glClearColor(clearColor.redF(), clearColor.greenF(), clearColor.blueF(), clearColor.alphaF());
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
-	program->setUniformValue("matrix", mvp);
-	program->enableAttributeArray(PROGRAM_VERTEX_ATTRIBUTE);
-	program->enableAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE);
-	program->setAttributeBuffer(PROGRAM_VERTEX_ATTRIBUTE, GL_FLOAT, 0, 3, 8 * sizeof(GLfloat));
-	program->setAttributeBuffer(PROGRAM_TEXCOORD_ATTRIBUTE, GL_FLOAT, 3 * sizeof(GLfloat), 2, 8 * sizeof(GLfloat));
-
-	for (int i = 0; i < 6; ++i) {
-		glBindTexture(GL_TEXTURE_2D, shadowMapID);
-		glDrawArrays(GL_TRIANGLE_FAN, i * 4, 4);
-	}
 }
 
 void GLWidget::initFrontMaterail()
@@ -320,16 +250,6 @@ void GLWidget::initFrontMaterail()
 
 		glDrawArrays(GL_TRIANGLE_FAN, i * 4, 4);
 	}
-}
-
-
-QVector3D GLWidget::calcNormal(QVector3D v1, QVector3D v2, QVector3D v3)
-{
-	QVector3D direction1 = v2 - v1;
-	QVector3D direction2 = v1 - v3;
-	QVector3D result = QVector3D::crossProduct(direction1, direction2);
-	result = result.normalized();
-	return result;
 }
 
 void GLWidget::initPlane()
@@ -414,7 +334,11 @@ void GLWidget::initPlane()
 	//glClearColor(clearColor.redF(), clearColor.greenF(), clearColor.blueF(), clearColor.alphaF());
 	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	program->setUniformValue("matrix", project*model*view);
+	QMatrix4x4 scaleMatrix;
+	scaleMatrix.scale(10,10,1);
+	scaleMatrix.rotate(30, QVector3D(1,0,0));
+
+	program->setUniformValue("matrix", project*model*view*scaleMatrix);
 	program->enableAttributeArray(PROGRAM_VERTEX_ATTRIBUTE);
 	program->enableAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE);
 	program->enableAttributeArray(PROGRAM_NORMAL_ATTRIBUTE);
@@ -427,6 +351,7 @@ void GLWidget::initPlane()
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indexData.constData());
 }
+
 void GLWidget::makeObject()
 {
 	static const int coords[6][4][3] = {
@@ -469,11 +394,170 @@ void GLWidget::makeObject()
 	vbo.allocate(vertData.constData(), vertData.count() * sizeof(GLfloat));
 }
 
-void GLWidget::test()
+void GLWidget::genShadowMap()
 {
-
-	
+	glGenFramebuffers(1, &depthMapFBO);
+	int width = 1024;
+	int height = 768;
+	glGenTextures(1, &shadowMapID);
+	glBindTexture(GL_TEXTURE_2D, shadowMapID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
+void GLWidget::initDepthMaterail()
+{
+	makeObject();
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+
+	QOpenGLShader *vshader = new QOpenGLShader(QOpenGLShader::Vertex, this);
+	bool result = vshader->compileSourceFile(QString(":/OpenGLQt/Resources/Shader/shadowMap.vert"));
+	if (!result)
+	{
+		int i = 0;
+	}
+
+	QOpenGLShader *fshader = new QOpenGLShader(QOpenGLShader::Fragment, this);
+	bool fResult = fshader->compileSourceFile(QString(":/OpenGLQt/Resources/Shader/shadowMap.frag"));
+	if (!fResult)
+	{
+		int i = 0;
+	}
+
+	program = new QOpenGLShaderProgram;
+	program->addShader(vshader);
+	program->addShader(fshader);
+	program->bindAttributeLocation("vertex", PROGRAM_VERTEX_ATTRIBUTE);
+	program->bindAttributeLocation("texCoord", PROGRAM_TEXCOORD_ATTRIBUTE);
+	program->link();
+
+	program->bind();
+	program->setUniformValue("texture", 0);
+
+	glClearColor(clearColor.redF(), clearColor.greenF(), clearColor.blueF(), clearColor.alphaF());
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
+	program->setUniformValue("matrix", s_project*model*s_view);
+	program->enableAttributeArray(PROGRAM_VERTEX_ATTRIBUTE);
+	program->enableAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE);
+	program->setAttributeBuffer(PROGRAM_VERTEX_ATTRIBUTE, GL_FLOAT, 0, 3, 8 * sizeof(GLfloat));
+	program->setAttributeBuffer(PROGRAM_TEXCOORD_ATTRIBUTE, GL_FLOAT, 3 * sizeof(GLfloat), 2, 8 * sizeof(GLfloat));
+
+	for (int i = 0; i < 6; ++i) {
+		glBindTexture(GL_TEXTURE_2D, shadowMapID);
+		glDrawArrays(GL_TRIANGLE_FAN, i * 4, 4);
+	}
+}
+
+void GLWidget::initDepthPlane()
+{
+	static const int coords[4][3] = { { +1, -1, -1 }, { -1, -1, -1 }, { -1, +1, -1 }, { +1, +1, -1 } };
+	QVector<GLfloat> vertData;
+	QVector<GLuint> indexData;
+	QVector3D position1(coords[0][0], coords[0][1], coords[0][2]);
+	QVector3D position2(coords[1][0], coords[1][1], coords[1][2]);
+	QVector3D position3(coords[2][0], coords[2][1], coords[2][2]);
+	QVector3D normal = calcNormal(position1, position2, position3);
+	for (int i = 0; i < 4; i++)
+	{
+		//verctex
+		vertData.append(0.5*coords[i][0]);
+		vertData.append(0.5*coords[i][1]);
+		vertData.append(0.5*coords[i][2]);
+
+		//uv
+		vertData.append(i == 0 || i == 3);
+		vertData.append(i == 0 || i == 1);
+
+		//normal
+
+		vertData.append(normal.x());
+		vertData.append(normal.y());
+		vertData.append(normal.z());
+	}
+
+	indexData.append(0);
+	indexData.append(3);
+	indexData.append(2);
+
+	indexData.append(0);
+	indexData.append(2);
+	indexData.append(1);
+
+	vbo.create();
+	vbo.bind();
+	vbo.allocate(vertData.constData(), vertData.count() * sizeof(GLfloat));
+
+	GLuint ebo;
+	glGenBuffers(1, &ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, vertData.count() * sizeof(GLfloat), indexData.constData(), GL_STATIC_DRAW);
+
+
+	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_CULL_FACE);
+	glDisable(GL_CULL_FACE);
+
+
+#define PROGRAM_VERTEX_ATTRIBUTE 0
+#define PROGRAM_TEXCOORD_ATTRIBUTE 1
+#define PROGRAM_NORMAL_ATTRIBUTE 2
+
+	QOpenGLShader *vshader = new QOpenGLShader(QOpenGLShader::Vertex, this);
+	bool result = vshader->compileSourceFile(QString(":/OpenGLQt/Resources/Shader/planeShader.vert"));
+	if (!result)
+	{
+		int i = 0;
+	}
+
+	QOpenGLShader *fshader = new QOpenGLShader(QOpenGLShader::Fragment, this);
+	bool fResult = fshader->compileSourceFile(QString(":/OpenGLQt/Resources/Shader/planeShader.frag"));
+	if (!fResult)
+	{
+		int i = 0;
+	}
+
+
+	program = new QOpenGLShaderProgram;
+	program->addShader(vshader);
+	program->addShader(fshader);
+	program->bindAttributeLocation("vertex", PROGRAM_VERTEX_ATTRIBUTE);
+	program->bindAttributeLocation("texCoord", PROGRAM_TEXCOORD_ATTRIBUTE);
+	program->bindAttributeLocation("normal", PROGRAM_NORMAL_ATTRIBUTE);
+	program->link();
+
+	program->bind();
+	program->setUniformValue("texture", 0);
+
+	//glClearColor(clearColor.redF(), clearColor.greenF(), clearColor.blueF(), clearColor.alphaF());
+	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	QMatrix4x4 scaleMatrix;
+	scaleMatrix.rotate(90,QVector3D(1,0,0));
+
+	program->setUniformValue("matrix", s_project*model*s_view*scaleMatrix);
+	program->enableAttributeArray(PROGRAM_VERTEX_ATTRIBUTE);
+	program->enableAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE);
+	program->enableAttributeArray(PROGRAM_NORMAL_ATTRIBUTE);
+	program->setAttributeBuffer(PROGRAM_VERTEX_ATTRIBUTE, GL_FLOAT, 0, 3, 8 * sizeof(GLfloat));
+	program->setAttributeBuffer(PROGRAM_TEXCOORD_ATTRIBUTE, GL_FLOAT, 3 * sizeof(GLfloat), 2, 8 * sizeof(GLfloat));
+	program->setAttributeBuffer(PROGRAM_NORMAL_ATTRIBUTE, GL_FLOAT, 5 * sizeof(GLfloat), 3, 8 * sizeof(GLfloat));
+
+	glBindTexture(GL_TEXTURE_2D, shadowMapID);
+
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+}
+
+QVector3D GLWidget::calcNormal(QVector3D v1, QVector3D v2, QVector3D v3)
+{
+	QVector3D direction1 = v2 - v1;
+	QVector3D direction2 = v1 - v3;
+	QVector3D result = QVector3D::crossProduct(direction1, direction2);
+	result = result.normalized();
+	return result;
+}
