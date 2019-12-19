@@ -67,7 +67,7 @@ GLWidget::GLWidget(QWidget *parent)
 	program(0)
 {
 
-	s_project.ortho(-0.5f, +0.5f, +0.5f, -0.5f, 4.0f, 50.0f);
+	s_project.ortho(-1.0f, +1.0f, -1.0f, +1.0f, 4.0f, 50.0f);
 	//s_view.lookAt(QVector3D(0,0,0),QVector3D(0,0,-10),QVector3D(0,1,0));
 	s_view.lookAt(QVector3D(10,10,0),QVector3D(0,0,0),QVector3D(-1,1,0));
 	
@@ -83,7 +83,7 @@ GLWidget::GLWidget(QWidget *parent)
 	view.lookAt(QVector3D(0, 0, 0), QVector3D(0, 0, -10), QVector3D(0, 1, 0));
 
 	//prject matrix
-	project.frustum(-0.5f, +0.5f, +0.5f, -0.5f, 4.0f, 50.0f);
+	project.frustum(-1.0f, +1.0f, 1.0f, -1.0f, 4.0f, 50.0f);
 
 	xMov = 0;
 	yMov = 0;
@@ -149,6 +149,7 @@ void GLWidget::paintGL()
 	
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, depthMapFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMapID, 0);
+	
 	initDepthMaterail();
 	initDepthPlane();
 
@@ -230,6 +231,9 @@ void GLWidget::initFrontMaterail()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	program->setUniformValue("matrix", project*model*view);
+	program->setUniformValue("model", model);
+	program->setUniformValue("view", view);
+	program->setUniformValue("project", project);
 	program->enableAttributeArray(PROGRAM_VERTEX_ATTRIBUTE);
 	program->enableAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE);
 	program->enableAttributeArray(PROGRAM_NORMAL_ATTRIBUTE);
@@ -336,9 +340,14 @@ void GLWidget::initPlane()
 
 	QMatrix4x4 scaleMatrix;
 	scaleMatrix.scale(10,10,1);
-	scaleMatrix.rotate(30, QVector3D(1,0,0));
+	scaleMatrix.rotate(45, QVector3D(1,0,0));
 
 	program->setUniformValue("matrix", project*model*view*scaleMatrix);
+
+	program->setUniformValue("model", model);
+	program->setUniformValue("s_view", s_view*scaleMatrix);
+	program->setUniformValue("s_project", s_project);
+
 	program->enableAttributeArray(PROGRAM_VERTEX_ATTRIBUTE);
 	program->enableAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE);
 	program->enableAttributeArray(PROGRAM_NORMAL_ATTRIBUTE);
@@ -444,6 +453,9 @@ void GLWidget::initDepthMaterail()
 
 
 	program->setUniformValue("matrix", s_project*model*s_view);
+	program->setUniformValue("model",model);
+	program->setUniformValue("s_view",s_view);
+	program->setUniformValue("s_project",s_project);
 	program->enableAttributeArray(PROGRAM_VERTEX_ATTRIBUTE);
 	program->enableAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE);
 	program->setAttributeBuffer(PROGRAM_VERTEX_ATTRIBUTE, GL_FLOAT, 0, 3, 8 * sizeof(GLfloat));
@@ -538,9 +550,14 @@ void GLWidget::initDepthPlane()
 	//glClearColor(clearColor.redF(), clearColor.greenF(), clearColor.blueF(), clearColor.alphaF());
 	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	QMatrix4x4 scaleMatrix;
-	scaleMatrix.rotate(90,QVector3D(1,0,0));
-
+	//scaleMatrix.scale(10,10,1);
+	scaleMatrix.rotate(45,QVector3D(1,0,0));
 	program->setUniformValue("matrix", s_project*model*s_view*scaleMatrix);
+	//program->setUniformValue("matrix", s_project*model*s_view*scaleMatrix);
+	program->setUniformValue("model", model);
+	program->setUniformValue("s_view", s_view*scaleMatrix);
+	program->setUniformValue("s_project", s_project);
+
 	program->enableAttributeArray(PROGRAM_VERTEX_ATTRIBUTE);
 	program->enableAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE);
 	program->enableAttributeArray(PROGRAM_NORMAL_ATTRIBUTE);

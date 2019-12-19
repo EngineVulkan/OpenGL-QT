@@ -3,7 +3,14 @@ attribute mediump vec4 texCoord;
 attribute mediump vec3 normal;
 varying mediump vec4 texc;
 varying mediump vec4 v_normal;
+
 uniform mediump mat4 matrix;
+uniform mediump mat4 model;
+uniform mediump mat4 view;
+uniform mediump mat4 project;
+
+
+
 void main(void)
 {
 	gl_Position = matrix * vertex;
